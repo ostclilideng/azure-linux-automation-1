@@ -160,6 +160,14 @@ def IsFreeBSD():
 		tmp = Run(cmd)
 		return ("FreeBSD" in tmp)
 
+def RunWithReturnCode(cmd):
+        proc=subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+        proc.wait()
+        op = proc.stdout.read()
+        RunLog.debug(op)
+        code=proc.returncode
+        return int(code)
+
 def Run(cmd):
         proc=subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
         proc.wait()
@@ -313,6 +321,17 @@ def ZypperPackageInstall(package):
 	#Consider package installation failed if non of the above matches.
 	RunLog.error((package + ": package installation failed!\n"+output))
 	return False
+
+def PkgPackageInstall(package):
+    RunLog.info( "\npkg_package_install: " + package)
+    returncode = RunWithReturnCode("pkg install -y " + package)
+        
+    if returncode == 0:
+        RunLog.info((package + ": package installed successfully.\n"))
+        return True
+    else:
+        RunLog.error((package + ": package installation failed!\n"))
+        return False
 
 def ZypperPackageRemove(package):
 	RunLog.info( "\nzypper_package_remove: " + package)

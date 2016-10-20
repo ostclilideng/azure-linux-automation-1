@@ -64,47 +64,10 @@ if ($isDeployed)
 				if($SetupStatus -imatch "PACKAGE-INSTALL-CONFIG-PASS")
 				{
 					LogMsg "** All the required packages for the distro installed successfully **"			
-					#Check whether the distro is using python2 and python3 to run waagent
-					$usePython3 = $false
-                    $output = RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "ps aux | grep waagent | grep python | grep -v 'ps aux | grep waagent | grep python'" -runAsSudo
-                    if($output -match 'python3')
-					{
-						$usePython3 = $true
-					}
-					#Add a User with sudo permissions for investigating issue
-					$newUser = $env:LinuxSudoUser
-					$newPassword = $env:LinuxSudoPwd
-					$userAddOutput = RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "./AddNewUserWithSudoPermission.sh -newUser $newUser -newPassword $newPassword" -runAsSudo					
-
-					if ($userAddOutput -imatch "AUTOMATION_USER_ADDED")
-					{
-						$newUserAdded = $true
-						Set-Content -Value $userAddOutput -Path $LogDir\userAddOutput.txt -Force
-						LogMsg "Add new user : $newUser : SUCCESS"
-						LogMsg "Password for : $newUser : $newPassword"
-					}
-					else
-					{
-						$newUserAdded = $false
-						LogErr "Add new user : $newUser : FAILED"
-						LogErr "Output : $userAddOutput"
-					}
+					RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "ps auxw | grep -i waagent | grep -v grep | awk '{ print $2 }' | xargs  kill" -runAsSudo
+					RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "rm -rf /var/log/*;sync" -runAsSudo
 					#VM De-provision
-                    if ($DistroName -eq "COREOS")   
-                    {  
-                        $output = RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "/usr/share/oem/python/bin/python /usr/share/oem/bin/waagent -force -deprovision+user 2>&1" -runAsSudo  
-                    }
-                    else {  
-                        GetVMLogs -DeployedServices $isDeployed
-					    if($usePython3)
-						{
-							$output = RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "/usr/bin/python3 /usr/sbin/waagent -force -deprovision+user 2>&1" -runAsSudo					
-						}
-						else
-						{
-							$output = RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "/usr/sbin/waagent -force -deprovision+user 2>&1" -runAsSudo
-						}
-                    }  
+					$output = RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "/usr/sbin/waagent -force -deprovision+user" -runAsSudo
 					
 					if($output -match "home directory will be deleted")
 					{
