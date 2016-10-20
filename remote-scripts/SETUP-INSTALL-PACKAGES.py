@@ -17,47 +17,12 @@ startup_file = ""
 
 rpm_links = {}
 tar_link = {}
-current_distro = "unknown"
+current_distro = "FreeBSD"
 packages_list_xml = "./packages.xml"
 python_cmd="python"
 waagent_cmd="waagent"
 waagent_bin_path="/usr/sbin"
 
-def set_variables_OS_dependent():
-        global current_distro
-        global distro_version
-        global startup_file
-
-        RunLog.info ("\nset_variables_OS_dependent ..")
-        [current_distro, distro_version] = DetectDistro()
-        if(current_distro == 'unknown'):
-                RunLog.error ("unknown distribution found, exiting")
-                ResultLog.info('ABORTED')
-                exit()
-        if(current_distro == "ubuntu" or current_distro == "debian"):
-                startup_file = '/etc/rc.local'
-        elif(current_distro == "centos" or current_distro == "rhel" or current_distro == "fedora" or current_distro == "Oracle"):
-                startup_file = '/etc/rc.d/rc.local'
-        elif(current_distro == "SUSE" or current_distro == "sles" or current_distro == "opensuse"):
-                startup_file = '/etc/rc.d/after.local'
-        
-        if(current_distro == "coreos"):
-                python_cmd="/usr/share/oem/python/bin/python"
-                waagent_bin_path="/usr/share/oem/bin/python"
-                waagent_cmd= "{0} {1}".format(python_cmd, waagent_bin_path)
-                
-        RunLog.info ("\nset_variables_OS_dependent ..[done]")
-
-def download_and_install_rpm(package):
-        RunLog.info("Installing Package: " + package+" from rpmlink")
-        if package in rpm_links:
-                if DownloadUrl(rpm_links.get(package), "/tmp/"):
-                        if InstallRpm("/tmp/"+re.split("/",rpm_links.get(package))[-1], package):
-                                RunLog.info("Installing Package: " + package+" from rpmlink done!")
-                                return True
-
-        RunLog.error("Installing Package: " + package+" from rpmlink failed!!")
-        return False
 
 def easy_install(package):
         RunLog.info("Installing Package: " + package+" via easy_install")
@@ -73,76 +38,6 @@ def easy_install(package):
         RunLog.error("Installing Package: " + package+" via easy_install failed!!")
         return False
 
-def yum_package_install(package):
-        if(YumPackageInstall(package) == True):
-                return True
-        elif(download_and_install_rpm(package) == True):
-                return True
-        elif(easy_install(package) == True):
-		        return True
-        else:
-                return False
-
-def zypper_package_install(package):
-        if(ZypperPackageInstall(package) == True):
-                return True
-        elif(download_and_install_rpm(package) == True):
-                return True
-        elif(package == 'gcc'):
-                return InstallGcc()    
-        else:
-                return False
-
-def coreos_package_install():
-        binpath="/usr/share/oem/bin"
-        pythonlibrary="/usr/share/oem/python/lib64/python2.7"
-
-        # create /etc/hosts
-        ExecMultiCmdsLocalSudo(["touch /etc/hosts",\
-                "echo '127.0.0.1 localhost' > /etc/hosts",\
-                "echo '** modify /etc/hosts successfully **' >> PackageStatus.txt"])
-        # copy tools to bin folder
-        Run("unzip -d CoreosPreparationTools ./CoreosPreparationTools.zip")
-        ExecMultiCmdsLocalSudo(["cp ./CoreosPreparationTools/killall " + binpath, \
-                "cp ./CoreosPreparationTools/iperf " + binpath,\
-                "cp ./CoreosPreparationTools/iozone " + binpath,\
-                "cp ./CoreosPreparationTools/dos2unix " + binpath,\
-                "cp ./CoreosPreparationTools/at " + binpath,\
-                "chmod 755 "+ binpath + "/*",\
-                "echo '** copy tools successfully **' >> PackageStatus.txt"])
-        # copy python library to python library folder
-        Run("tar zxvf ./CoreosPreparationTools/pycrypto.tar.gz -C "+ pythonlibrary)
-        ExecMultiCmdsLocalSudo(["tar zxvf ./CoreosPreparationTools/ecdsa-0.13.tar.gz -C ./CoreosPreparationTools",\
-                "cd ./CoreosPreparationTools/ecdsa-0.13",\
-                "/usr/share/oem/python/bin/python setup.py install",\
-                "cd ../.."])
-        ExecMultiCmdsLocalSudo(["tar zxvf ./CoreosPreparationTools/paramiko-1.15.1.tar.gz -C ./CoreosPreparationTools",\
-                "cd ./CoreosPreparationTools/paramiko-1.15.1",\
-                "/usr/share/oem/python/bin/python setup.py install",\
-                "cd ../..",\
-                "tar zxvf ./CoreosPreparationTools/pexpect-3.3.tar.gz -C ./CoreosPreparationTools",\
-                "cd ./CoreosPreparationTools/pexpect-3.3",\
-                "/usr/share/oem/python/bin/python setup.py install",\
-                "cd ../.."])
-        ExecMultiCmdsLocalSudo(["tar zxvf ./CoreosPreparationTools/dnspython-1.12.0.tar.gz -C ./CoreosPreparationTools",\
-                "cd ./CoreosPreparationTools/dnspython-1.12.0",\
-                "/usr/share/oem/python/bin/python setup.py install",\
-                "cd ../.."])
-        if not os.path.exists (pythonlibrary + "/site-packages/pexpect"):
-                RunLog.error ("pexpect package installation failed!")
-                Run("echo '** pexpect package installation failed **' >> PackageStatus.txt")
-                return False
-        if not os.path.exists (pythonlibrary + "/site-packages/paramiko"):
-                RunLog.error ("paramiko packages installation failed!")
-                Run("echo '** paramiko packages installed failed **' >> PackageStatus.txt")
-                return False
-        if not os.path.exists (pythonlibrary + "/site-packages/dns"):
-                RunLog.error ("dnspython packages installation failed!")
-                Run("echo '** dnspython packages installed failed **' >> PackageStatus.txt")
-                return False
-        RunLog.info ("pexpect, paramiko and dnspython packages installed successfully!")
-        Run("echo '** pexpect, paramiko and dnspython packages installed successfully **' >> PackageStatus.txt")
-        return True
 
 def install_ez_setup():
         RunLog.info ("Installing ez_setup.py...")
@@ -157,40 +52,6 @@ def install_ez_setup():
 
         output = Run("{0} {1}".format(python_cmd, ez_setup))
         return ("Finished" in output)
-
-def InstallGcc():
-        RunLog.info("Interactive installing Package: gcc")
-        Run("wget http://pexpect.sourceforge.net/pexpect-2.3.tar.gz;tar xzf pexpect-2.3.tar.gz;cd pexpect-2.3;python ./setup.py install;cd ..")
-        import pexpect
-        cmd = 'zypper install gcc'
-        child = pexpect.spawn(cmd)
-        fout = file('GccInstallLog.txt','w')
-        child.logfile = fout
-        index = child.expect(["(?i)Choose from above solutions by number or cancel", pexpect.EOF, pexpect.TIMEOUT])
-        if(index == 0):
-                child.sendline('1')
-                RunLog.info("choose option 1")
-                index = child.expect(["(?i)Continue?", pexpect.EOF, pexpect.TIMEOUT])
-                if(index == 0):
-                        child.sendline('y')
-                        RunLog.info("choose option y")
-                        while True:
-                                index = child.expect(["Installing: gcc-.*done]", pexpect.EOF, pexpect.TIMEOUT])
-                                if(index == 0):
-                                        RunLog.info("gcc: package installed successfully.\n")
-                                        return True
-                                elif(index == 2):
-                                        RunLog.info("pexpect.TIMEOUT\n")
-                                        pass
-                                else:
-                                        RunLog.error("gcc: package installed failed unexpectly.\n")
-                else:
-                        RunLog.error("gcc: package installed failed in the second step.\n")
-                        return False
-        else:
-                RunLog.error("gcc: package installed failed in the first step.\n")
-                return False
-
 
 def install_waagent_from_github():
         RunLog.info ("Installing waagent from github...")
@@ -242,103 +103,51 @@ def install_package(package):
         if (package == "ez_setup"):
                 return install_ez_setup()
         else:
-                if ((current_distro == "ubuntu") or (current_distro == "debian")):
-                        return AptgetPackageInstall(package)
-                elif ((current_distro == "rhel") or (current_distro == "Oracle") or (current_distro == 'centos') or (current_distro == 'fedora')):
-                        return yum_package_install(package)
-                elif (current_distro == "SUSE") or (current_distro == "openSUSE") or (current_distro == "sles") or (current_distro == "opensuse"):
-                        return zypper_package_install(package)
+                if (current_distro == "FreeBSD"):
+                        return PkgPackageInstall(package)
                 else:
                         RunLog.error (package + ": package installation failed!")
-                        RunLog.info (current_distro + ": Unrecognised Distribution OS Linux found!")
+                        RunLog.info (current_distro + ": Unrecognised Distribution OS found!")
                         return False
 
 def ConfigFilesUpdate():
-        firewall_disabled = False
         update_configuration = False
-        IsStartUp = False
         RunLog.info("Updating configuration files..")
 
-        #Provisioning.MonitorHostName=n -> y, in Ubuntu it is n by default
-        Run("sed -i s/Provisioning.MonitorHostName=n/Provisioning.MonitorHostName=y/g  /etc/waagent.conf > /tmp/waagent.conf")         
+        # Create a link for bash
+        Run("ln -sf /usr/local/bin/bash /bin/bash")
+
+        #Enable boot verbose
+        loaderconf = Run("cat /boot/loader.conf")
+
+        if not ('boot_verbose="YES"' in loaderconf):
+                Run("echo 'boot_verbose=\"YES\"' >> /boot/loader.conf")  
         
-        # Disable 'requiretty' in sudoers
-        Run("sed -r 's/^.*Defaults\s*requiretty.*$/#Defaults requiretty/g' /etc/sudoers -i")
+        #Add a user for analysis
+        Run("pw useradd -n fortest -s /bin/csh -m")
+        Run("echo \"User@123\" | pw mod user fortest -h 0")
 
-        #Configuration of /etc/security/pam_env.conf
-        Run("sed -i 's/^#REMOTEHOST/REMOTEHOST/g' /etc/security/pam_env.conf")
-        Run("sed -i 's/^#DISPLAY/DISPLAY/g' /etc/security/pam_env.conf")
-        pamconf = Run("cat /etc/security/pam_env.conf")
+        #Configuration of sudoers
+        Run("sed -i .bak 's/^[#| ]*ALL ALL=/ALL ALL=/g' /usr/local/etc/sudoers")
 
-        if ((pamconf.find('#REMOTEHOST') == -1) and (pamconf.find('#DISPLAY') == -1)):
+        loaderconf = Run("cat /boot/loader.conf")
+
+        if 'boot_verbose="YES"' in loaderconf:
                 RunLog.info("/etc/security/pam_env.conf updated successfully\n")
-                update_configuration = True
                 Run("echo '** Config files are updated successfully **' >> PackageStatus.txt")
+                update_configuration = True
         else:
                 RunLog.error('Config file not updated\n')
                 Run("echo '** updating of config file is failed **' >> PackageStatus.txt")
-                update_configuration = False
 
         if (update_configuration == True):
                 RunLog.info('Config file updation succesfully!\n')
+                return True
                 
         else:
                 RunLog.error('[Error] Config file updation failed!')
+                return False
                 
-
-        #Configuration of Firewall(Disable)
-        if (current_distro == "ubuntu"):
-                FirewallInfo = Run("ufw disable")
-                if (FirewallInfo.find('Firewall stopped and disabled on system startup')):
-                        RunLog.info('**Firewall Stopped Successfully** \n')
-                        firewall_disabled = True
-                else:
-                        RunLog.error('**Failed to disable Firewall**')
-                        firewall_disabled = False
-
-        if ((current_distro == "SUSE") or (current_distro == "openSUSE")):
-                FWBootInfo = Run("/sbin/yast2 firewall startup manual")
-                if(FWBootInfo.find('Removing firewall from the boot process')):
-                        RunLog.info('Firewall Removed successfully from boot process \n')
-
-                FirewallInfo = Run("/sbin/rcSuSEfirewall2 status")
-
-                if (FirewallInfo.find('SuSEfirewall2') and FirewallInfo.find('unused')):
-                        RunLog.info('**Firewall Stopped Successfully** \n')
-                        firewall_disabled = True
-                else:
-                        RunLog.error('**Failed to disable Firewall**')
-                        firewall_disabled = False
-        else:
-                FirewallCmds = ("iptables -F","iptables -X","iptables -t nat -F","iptables -t nat -X","iptables -t mangle -F","iptables -t mangle -X","iptables -P INPUT ACCEPT","iptables -P OUTPUT ACCEPT","iptables -P FORWARD ACCEPT","systemctl stop iptables.service","systemctl disable iptables.service","systemctl stop firewalld.service","systemctl disable firewalld.service","chkconfig iptables off")
-                output = ExecMultiCmdsLocalSudo(FirewallCmds)
-                RunLog.info("Firewall disabled successfully\n")
-                Run("echo '** Firewall disabled successfully **' >> PackageStatus.txt")
-        #Verify startup file        
-        StartupStatus= Run('ls '+startup_file+' 2>&1')
-        if("No such file or directory" in StartupStatus):
-                RunLog.info( "'"+startup_file+"' not available.. ")
-                RunLog.info( "creating '+startup_file+'.. ")
-                cmds=["touch "+startup_file,"chmod a+x "+startup_file,"echo '#!/bin/sh' > "+startup_file,"echo ' ' >> "+startup_file,"echo 'exit 0' >> "+startup_file]
-                ExecMultiCmdsLocalSudo(cmds)
-                if(current_distro == "fedora"):
-                        cmds = ["service rc-local start","service rc-local status"]
-                        ExecMultiCmdsLocalSudo(cmds)
-                RunLog.info("'+startup_file+' created successfully\n")
-                Run("echo '** Is '"+startup_file+"' created successfully **' >> PackageStatus.txt")
-                IsStartUp = True
-                
-        else:
-                RunLog.info("'"+startup_file+"' available.. ")
-                Run("echo '** Is '"+startup_file+"' verified successfully **' >> PackageStatus.txt")
-                IsStartUp = True
-
-        if(firewall_disabled and update_configuration and IsStartUp):
-                success = True
-        else:
-                success = False
-
-        return success
 
 # Check command or python module is exist on system
 def CheckCmdPyModExist(it):
@@ -385,50 +194,24 @@ def RunTest():
                                 tar_link[node.attrib["name"]] = node.text
                         elif node.tag == "ez_setup_link":
                                 tar_link[node.attrib["name"]] = node.text
-                        elif node.tag == "rpm_link":
-                                rpm_links[node.attrib["name"]] = node.text
-                        elif node.tag == "tar_link":
-                                tar_link[node.attrib["name"]] = node.text
         
-        if not (current_distro=="coreos"):
-                for package in packages_list:
-                        if(not install_package(package)):
-                                # Check if the requisite package is exist already when failed this time
-                                if(package in required_packages_list):
-                                        if(not CheckCmdPyModExist(package)):
-                                                success = False
-                                                Run("echo '"+package+"' failed to install >> PackageStatus.txt")
-                                else:
-                                        # failure can be ignored
-                                        Run("echo '"+package+"' failed to install but can be ignored for tests >> PackageStatus.txt")
-                                #break
+        for package in packages_list:
+                if(not install_package(package)):
+                        # Check if the requisite package is exist already when failed this time
+                        if(package in required_packages_list):
+                                if(not CheckCmdPyModExist(package)):
+                                        success = False
+                                        Run("echo '"+package+"' failed to install >> PackageStatus.txt")
                         else:
-                                Run("echo '"+package+"' installed successfully >> PackageStatus.txt")
-        else:
-                if (not coreos_package_install()):
-                        success = False
-                        Run("echo 'coreos packages failed to install' >> PackageStatus.txt")
+                                # failure can be ignored
+                                Run("echo '"+package+"' failed to install but can be ignored for tests >> PackageStatus.txt")
+                        #break
                 else:
-                        Run("echo 'coreos support tools installed successfully' >> PackageStatus.txt")                
+                        Run("echo '"+package+"' installed successfully >> PackageStatus.txt")
 
-        if (current_distro == "SUSE") or (current_distro == "openSUSE") or (current_distro == "sles") or (current_distro == "opensuse"):
-                iperf_cmd = Run("command -v iperf")
-                iperf3_cmd = Run("command -v iperf3")
-                if not iperf_cmd and iperf3_cmd:
-                        RunLog.info('iperf3 has been installed instead of iperf from default repository')
-                        # ensure iperf v2 is installed rather than iperf v3                        
-                        if (ZypperPackageRemove('iperf') and download_and_install_rpm('iperf') and CheckCmdPyModExist('iperf')):
-                                Run("echo 'iperf' installed successfully >> PackageStatus.txt")
-                        else:
-                                Run("echo 'iperf' failed to install >> PackageStatus.txt")
-                                success = False
-
-                                
         Run("echo '** Packages Installation Completed **' >> PackageStatus.txt")                
         if success == True:
-                if not (current_distro=="coreos"):
-                        ConfigFilesUpdate()
-                if success == True:
+                if ConfigFilesUpdate():
                         RunLog.info('PACKAGE-INSTALL-CONFIG-PASS')
                         Run("echo 'PACKAGE-INSTALL-CONFIG-PASS' >> SetupStatus.txt")
                 else:
@@ -438,14 +221,15 @@ def RunTest():
                 RunLog.info('PACKAGE-INSTALL-CONFIG-FAIL')
                 Run("echo 'PACKAGE-INSTALL-CONFIG-FAIL' >> SetupStatus.txt")
         
-
+if not IsFreeBSD():
+        RunLog.info("The distro is not FreeBSD\n")
+        exit ()
+        
 #Code execution starts from here
 if not os.path.isfile("packages.xml"):
         RunLog.info("'packages.xml' file is missing\n")
         exit ()
 
-set_variables_OS_dependent()
-UpdateRepos(current_distro)
 
 RunTest()
 
