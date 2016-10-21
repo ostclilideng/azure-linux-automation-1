@@ -24,22 +24,12 @@ if ($isDeployed)
         $hs1ServiceUrl = $hs1ServiceUrl.Replace("/","")
         $hs1vm1Hostname =  $hs1vm1.Name
 
-        RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "cp /root/.bash_history /root/default_bash_history" -runAsSudo -ignoreLinuxExitCode
         RemoteCopy -uploadTo $hs1VIP -port $hs1vm1sshport -files $currentTestData.files -username $user -password $password -upload -doNotCompress
         RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "chmod +x *" -runAsSudo
 
         LogMsg "Executing : $($currentTestData.testScript)"
         try{
-            $DistroName = DetectLinuxDistro -VIP $hs1VIP -SSHport $hs1vm1sshport -testVMUser $user -testVMPassword $password
- 
-            if ($DistroName -eq "COREOS")  
-            {  
-                RemoteCopy -uploadTo $hs1VIP -port $hs1vm1sshport -files "Tools\CoreosPreparationTools.zip" -username $user -password $password -upload -doNotCompress
-                $output = RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "/usr/share/oem/python/bin/python ./$($currentTestData.testScript)" -runAsSudo
-            }  
-            else{  
-                $output = RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "$python_cmd ./$($currentTestData.testScript)" -runAsSudo -runMaxAllowedTime 5400
-            }  
+            $output = RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "$python_cmd ./$($currentTestData.testScript)" -runAsSudo
 
 			$output = RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "ls /home/$user/SetupStatus.txt  2>&1" -runAsSudo
 			
@@ -64,12 +54,12 @@ if ($isDeployed)
 				if($SetupStatus -imatch "PACKAGE-INSTALL-CONFIG-PASS")
 				{
 					LogMsg "** All the required packages for the distro installed successfully **"			
-					RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "ps auxw | grep -i waagent | grep -v grep | awk '{ print `$2 }' | xargs  kill" -runAsSudo
+					RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "service waagent stop" -runAsSudo
 					RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "rm -rf /var/log/*;sync" -runAsSudo
 					#VM De-provision
-					$output = RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "/usr/sbin/waagent -force -deprovision+user" -runAsSudo
+					$output = RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "/usr/sbin/waagent -force -deprovision" -runAsSudo
 					
-					if($output -match "home directory will be deleted")
+					if($output -match "root password will be disabled")
 					{
 						LogMsg "** VM De-provisioned Successfully **"
 						LogMsg "Stopping a VM to prepare OS image : $hs1vm1Hostname"
