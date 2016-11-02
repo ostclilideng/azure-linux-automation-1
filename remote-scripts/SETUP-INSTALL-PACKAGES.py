@@ -90,6 +90,7 @@ def install_waagent_from_github():
                 setup_py = os.path.join(waagentSrc, 'setup.py')
                 ExecMultiCmdsLocalSudo([
                         "{0} {1} install --register-service --force".format(python_cmd, setup_py)])
+                Run('chmod +x /etc/rc.d/waagent')
                 return True                
         else:
                 RunLog.error("Installing waagent from github...[failed]")

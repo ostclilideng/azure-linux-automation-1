@@ -54,7 +54,7 @@ if ($isDeployed)
 				if($SetupStatus -imatch "PACKAGE-INSTALL-CONFIG-PASS")
 				{
 					LogMsg "** All the required packages for the distro installed successfully **"			
-					RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "service waagent stop" -runAsSudo
+					RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "service waagent stop" -runAsSudo -ignoreLinuxExitCode
 					RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "rm -rf /var/log/*;sync" -runAsSudo
 					#VM De-provision
 					$output = RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "/usr/sbin/waagent -force -deprovision" -runAsSudo
