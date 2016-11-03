@@ -21,7 +21,7 @@ $ExtensionName = $MyExtn.OfficialName
 $Publisher = $MyExtn.Publisher
 $ExtVersion =  $MyExtn.Version
 $ExtVersionForARM = $MyExtn.LatestVersion
-
+$VersionCheckCMD = "ls /var/log/azure/$Publisher.$ExtensionName/"
 Function VerfiyAddUserScenario ($vmData, $PublicConfigString, $PrivateConfigString, $metaData)
 {
 		$ExitCode = "ABORTED"
@@ -310,8 +310,8 @@ Function VerfiyDeleteUserScenario ($vmData, $PublicConfigString, $PrivateConfigS
 		$errorCount = 0
 		LogMsg "Starting scenario $metaData"
 		$statusFileToVerify = GetStatusFileNameToVerfiy -vmData $vmData -expectedExtensionName $ExtensionName -upcoming
-		LogMsg "Getting contents of /etc/shadow"
-		$out = RunLinuxCmd -username $user -password $password -ip $vmData.PublicIP -port $vmData.SSHPort -command "cat /etc/shadow > /home/$user/etcShadowFileBeforeDeleteUser.txt" -runAsSudo
+		LogMsg "Getting contents of /etc/master.passwd"
+		$out = RunLinuxCmd -username $user -password $password -ip $vmData.PublicIP -port $vmData.SSHPort -command "cat /etc/master.passwd > /home/$user/etcShadowFileBeforeDeleteUser.txt" -runAsSudo
 		RemoteCopy -downloadFrom $vmData.PublicIP -port $vmData.SSHPort -downloadTo $LogDir -files "/home/$user/etcShadowFileBeforeDeleteUser.txt" -username $user -password $password -download
 		$etcShadowFileBeforeDeleteUser = [string](Get-Content "$LogDir\etcShadowFileBeforeDeleteUser.txt")
 
@@ -359,18 +359,18 @@ Function VerfiyDeleteUserScenario ($vmData, $PublicConfigString, $PrivateConfigS
 					Rename-Item -Path "$LogDir\extension.log" -NewName "extension.log.$metaData.txt" -Force | Out-Null
 					$extensionLog = [string]( Get-Content "$LogDir\extension.log.$metaData.txt" )
 
-					LogMsg "Getting contents of /etc/shadow"
-					$out = RunLinuxCmd -username $user -password $password -ip $vmData.PublicIP -port $vmData.SSHPort -command "cat /etc/shadow > /home/$user/etcShadowFileAfterDeleteUser.txt" -runAsSudo
+					LogMsg "Getting contents of /etc/master.passwd"
+					$out = RunLinuxCmd -username $user -password $password -ip $vmData.PublicIP -port $vmData.SSHPort -command "cat /etc/master.passwd > /home/$user/etcShadowFileAfterDeleteUser.txt" -runAsSudo
 					RemoteCopy -downloadFrom $vmData.PublicIP -port $vmData.SSHPort -downloadTo $LogDir -files "/home/$user/etcShadowFileAfterDeleteUser.txt" -username $user -password $password -download
 					$etcShadowFileAfterDeleteUser = [string](Get-Content "$LogDir\etcShadowFileAfterDeleteUser.txt")
 					if ( $etcShadowFileAfterDeleteUser -imatch "$NewUser`:")
 					{
-						LogErr "NEW USER : $NewUser NOT deleted from /etc/shadow file."
+						LogErr "NEW USER : $NewUser NOT deleted from /etc/master.passwd file."
 						$errorCount += 1
 					}
 					else
 					{
-						LogMsg "NEW USER : $NewUser has been deleted from /etc/shadow file."
+						LogMsg "NEW USER : $NewUser has been deleted from /etc/master.passwd file."
 					}
 					if ($errorCount -eq 0)
 					{
@@ -455,7 +455,7 @@ Function VerfiyResetSSHConfigScenario ($vmData, $PublicConfigString, $PrivateCon
 		#
 		# Edit the "/etc/ssh/sshd_config" but DONT RES
 		#
-		$out = RunLinuxCmd -username $user -password $password -ip $vmData.PublicIP -port $vmData.SSHPort -command "sed --in-place -e 's`/Port 22\s`*`/Port 99/g' $sshdConfigFilePath" -runAsSudo 
+		$out = RunLinuxCmd -username $user -password $password -ip $vmData.PublicIP -port $vmData.SSHPort -command "sed -i -e 's`/Port 22\s`*`/Port 99/g' $sshdConfigFilePath" -runAsSudo 
 		LogMsg "Replaced Port 22 > Port 99 in $sshdConfigFilePath"
 		LogMsg "Resetting $sshdConfigFilePath using $ExtensionName..."
 
@@ -674,6 +674,11 @@ if ($isDeployed)
 				{
 					$testResult = "Aborted"
 				}
+				if(!$ExtensionVersion)
+				{
+					$ExtensionVersion = RunLinuxCmd -username $user -password $password -ip $vmData.PublicIP -port $vmData.SSHPort -command "$VersionCheckCMD" -runAsSudo
+					$ExtensionVersion = $ExtensionVersion -replace 'password:'
+				}
 				$resultArr += $testResult
 				$resultSummary +=  CreateResultSummary -testResult $testResult -metaData $metaData -checkValues "PASS,FAIL,ABORTED" -testName $currentTestData.testName# if you want to publish all result then give here all test status possibilites. if you want just failed results, then give here just "FAIL". You can use any combination of PASS FAIL ABORTED and corresponding test results will be published!
 			}
@@ -692,6 +697,10 @@ $result = GetFinalResultHeader -resultarr $resultArr
 
 #Clean up the setup
 DoTestCleanUp -result $result -testName $currentTestData.testName -deployedServices $isDeployed -ResourceGroups $isDeployed
+if($ExtensionVersion)
+{
+	$currentTestData.testName = "$($currentTestData.testName)($ExtensionVersion)"
+}
 
 #Return the result and summery to the test suite script..
 return $result, $resultSummary

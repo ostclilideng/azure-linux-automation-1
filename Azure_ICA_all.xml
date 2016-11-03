@@ -5197,7 +5197,7 @@
 			<testScriptps1>ICA-VM-ACCESS-EXTENSION-TEST.ps1</testScriptps1>
 			<setupType>ExtensionTest</setupType>
 			<!-- <ProvisionTimeExtensions>VMAccess</ProvisionTimeExtensions> -->
-			<SubtestValues>AddUser,ResetPassword,DeleteUser,ResetSSHConfig</SubtestValues>
+			<SubtestValues>AddUser,ResetPassword,DeleteUser</SubtestValues>
 			<SupportedExecutionModes>AzureServiceManagement,AzureResourceManager</SupportedExecutionModes>
 			<Priority>P0</Priority>
 		</test>
@@ -5440,16 +5440,16 @@
 				<Name>BVT-VERIFY-SSHD-CONFIG</Name>
 			</test>
 			<test>
-				<Name>BVT-VERIFY-VERBOSE-ENABLED-LOGS</Name>
-			</test>
-			<test>
-				<Name>BVT-VERIFY-SHUTDOWN</Name>
-			</test>
-			<test>
 				<Name>BVT-VERIFY-PRIVATEKEY-AUTHENTICATION</Name>
 			</test>
 			<test>
 				<Name>BVT-VERIFY-FIREWALL-STATUS</Name>
+			</test>
+			<test>
+				<Name>BVT-VERIFY-VERBOSE-ENABLED-LOGS</Name>
+			</test>
+			<test>
+				<Name>BVT-VERIFY-SHUTDOWN</Name>
 			</test>
 		</Cycle>
 
@@ -5882,6 +5882,9 @@
 			<cycleName>EXTENSION</cycleName>
 			<test>
 				<Name>ICA-CUSTOM-SCRIPT-EXTENSION-TEST</Name>
+			</test>
+			<test>
+				<Name>ICA-VM-ACCESS-EXTENSION-TEST</Name>
 			</test>
 		</Cycle>
 

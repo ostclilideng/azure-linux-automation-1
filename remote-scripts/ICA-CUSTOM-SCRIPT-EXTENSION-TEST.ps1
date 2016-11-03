@@ -3,6 +3,19 @@ Import-Module .\TestLibs\RDFELibs.psm1 -Force
 $result = ""
 $testResult = ""
 $resultArr = @()
+
+$extnXML = [xml](Get-Content .\XML\Extensions.xml)
+foreach ($extn in $extnXML.Extensions.Extension) 
+{ 
+	if($extn.Name -imatch "CustomScriptTouchCommand")
+	{
+		$MyExtn = $extn
+	}
+}
+$ExtensionName = $MyExtn.OfficialName
+$Publisher = $MyExtn.Publisher
+$VersionCheckCMD = "ls /var/log/azure/$Publisher.$ExtensionName/"
+
 $isDeployed = DeployVMS -setupType $currentTestData.setupType -Distro $Distro -xmlConfig $xmlConfig
 if ($isDeployed)
 {
@@ -121,6 +134,11 @@ if ($isDeployed)
 		{
 			$testResult = "Aborted"
 		}
+		if(!$ExtensionVersion)
+		{
+			$ExtensionVersion = RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "$VersionCheckCMD" -runAsSudo
+			$ExtensionVersion = $ExtensionVersion -replace 'password:'
+		}
 		$resultArr += $testResult
 	}   
 }
@@ -134,6 +152,9 @@ $result = GetFinalResultHeader -resultarr $resultArr
 
 #Clean up the setup
 DoTestCleanUp -result $result -testName $currentTestData.testName -deployedServices $isDeployed -ResourceGroups $isDeployed
-
+if($ExtensionVersion)
+{
+	$currentTestData.testName = "$($currentTestData.testName)($ExtensionVersion)"
+}
 #Return the result and summery to the test suite script..
 return $result

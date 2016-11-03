@@ -18,8 +18,8 @@ def RunTest(expectedSize):
     UpdateState("TestRunning")
     RunLog.info("Checking DiskSize...")
     if (IsFreeBSD()):
-        output = Run("df -m | awk '/da0/ {print $2;}' | awk 'NR==1'")
-        ActualSize = float(output)*1024*1024
+        output = Run("diskinfo -v da0 | awk '/bytes/ {print $1;}'")
+        ActualSize = float(output)
     else:
         output = Run("fdisk -l | awk '/sda/ {print $5;}' | awk 'NR==1'")
         ActualSize = float(output)
