@@ -5452,9 +5452,6 @@
 				<Name>BVT-VERIFY-UUID-FSTAB</Name>
 			</test>
 			<test>
-				<Name>BVT-VERIFY-BOOT-ERROR-WARNINGS</Name>
-			</test>
-			<test>
 				<Name>BVT-VERIFY-SSHD-CONFIG</Name>
 			</test>
 			<test>
