@@ -207,6 +207,15 @@ Function GenerateAzureDeployJSONFile ($RGName, $osImage, $osVHD, $RGXMLData, $Lo
 {
 LogMsg "Generating Template : $azuredeployJSONFilePath"
 $jsonFile = $azuredeployJSONFilePath
+$Environment = $xml.config.Azure.General.Environment
+if($Environment -eq 'AzureChinaCloud')
+{
+    $managementEndpoint = '.blob.core.chinacloudapi.cn'
+}
+else
+{
+    $managementEndpoint = '.blob.core.windows.net'
+}
 $StorageAccountName = $xml.config.Azure.General.ARMStorageAccount
 if($storageAccount)
 { 
@@ -330,14 +339,14 @@ $StorageProfileScriptBlock = {
                         LogMsg "├Using VHD : $osVHD"
                         Add-Content -Value "$($indents[6])^image^: " -Path $jsonFile
                         Add-Content -Value "$($indents[6]){" -Path $jsonFile
-                            Add-Content -Value "$($indents[7])^uri^: ^[concat('http://',variables('StorageAccountName'),'.blob.core.windows.net/vhds/','$osVHD')]^" -Path $jsonFile
+                            Add-Content -Value "$($indents[7])^uri^: ^[concat('http://',variables('StorageAccountName'),'$managementEndpoint/vhds/','$osVHD')]^" -Path $jsonFile
                         Add-Content -Value "$($indents[6])}," -Path $jsonFile
                         Add-Content -Value "$($indents[6])^osType^: ^Linux^," -Path $jsonFile
                         Add-Content -Value "$($indents[6])^name^: ^$vmName-OSDisk^," -Path $jsonFile
                         #Add-Content -Value "$($indents[6])^osType^: ^Linux^," -Path $jsonFile
                         Add-Content -Value "$($indents[6])^vhd^: " -Path $jsonFile
                         Add-Content -Value "$($indents[6]){" -Path $jsonFile
-                            Add-Content -Value "$($indents[7])^uri^: ^[concat('http://',variables('StorageAccountName'),'.blob.core.windows.net/vhds/','$vmName-$RGrandomWord-osdisk.vhd')]^" -Path $jsonFile
+                            Add-Content -Value "$($indents[7])^uri^: ^[concat('http://',variables('StorageAccountName'),'$managementEndpoint/vhds/','$vmName-$RGrandomWord-osdisk.vhd')]^" -Path $jsonFile
                         Add-Content -Value "$($indents[6])}," -Path $jsonFile
                         Add-Content -Value "$($indents[6])^caching^: ^ReadWrite^," -Path $jsonFile
                         Add-Content -Value "$($indents[6])^createOption^: ^FromImage^" -Path $jsonFile
@@ -349,7 +358,7 @@ $StorageProfileScriptBlock = {
                         Add-Content -Value "$($indents[6])^createOption^: ^FromImage^," -Path $jsonFile
                         Add-Content -Value "$($indents[6])^vhd^: " -Path $jsonFile
                         Add-Content -Value "$($indents[6]){" -Path $jsonFile
-                            Add-Content -Value "$($indents[7])^uri^: ^[concat('http://',variables('StorageAccountName'),'.blob.core.windows.net/vhds/','$vmName-$RGrandomWord-osdisk.vhd')]^" -Path $jsonFile
+                            Add-Content -Value "$($indents[7])^uri^: ^[concat('http://',variables('StorageAccountName'),'$managementEndpoint/vhds/','$vmName-$RGrandomWord-osdisk.vhd')]^" -Path $jsonFile
                         Add-Content -Value "$($indents[6])}," -Path $jsonFile
                         Add-Content -Value "$($indents[6])^caching^: ^ReadWrite^" -Path $jsonFile
 
