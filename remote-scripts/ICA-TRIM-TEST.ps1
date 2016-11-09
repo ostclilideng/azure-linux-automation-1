@@ -3,7 +3,15 @@ Set-Alias -Name java -Value (Join-Path $env:JAVA_HOME 'bin\java.exe')
 
 Function GetBillableSize ($key, $name, $url)
 {
-    java -jar $toolpath net.local.test.AccessStorage -k $key -n $name -c false -u $url
+    if($xmlConfig.config.Azure.General.Environment -eq "AzureChinaCloud") 
+    { 
+        java -jar $toolpath net.local.test.AccessStorage -k $key -n $name -c true -u $url 
+    } 
+    else
+    { 
+        java -jar $toolpath net.local.test.AccessStorage -k $key -n $name -c false -u $url 
+    }
+
     $line = Get-Content .\azure-storage-usage.log | select -Last 1
     $value = $line.Split('')[-3] + " " + $line.Split('')[-2]
     Return "$value"
