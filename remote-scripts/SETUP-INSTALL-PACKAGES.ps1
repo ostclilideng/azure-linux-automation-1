@@ -57,7 +57,7 @@ if ($isDeployed)
 					RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "service waagent stop" -runAsSudo -ignoreLinuxExitCode
 					RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "rm -rf /var/log/*;sync" -runAsSudo
 					#VM De-provision
-					$output = RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "/usr/sbin/waagent -force -deprovision" -runAsSudo
+					$output = RunLinuxCmd -username $user -password $password -ip $hs1VIP -port $hs1vm1sshport -command "waagent -force -deprovision" -runAsSudo
 					
 					if($output -match "root password will be disabled")
 					{
