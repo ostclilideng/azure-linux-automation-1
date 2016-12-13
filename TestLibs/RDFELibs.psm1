@@ -4412,6 +4412,14 @@ Function GetAllDeployementData($DeployedServices, $ResourceGroups)
 						Add-Member -InputObject $QuickVMNode -MemberType NoteProperty -Name "$($endPoint.EndpointName)Port" -Value $endPoint.PublicPort -Force
 					}
 				}
+                if($AllEndpoints.Length -eq 0)
+                {
+                    $sg = Get-AzureRmNetworkSecurityGroup -ResourceGroupName $testVM.ResourceGroupName
+                    foreach($rule in $sg.SecurityRules)
+                    {
+                        Add-Member -InputObject $QuickVMNode -MemberType NoteProperty -Name "$($rule.Name)Port" -Value $rule.DestinationPortRange -Force
+                    }
+                }
 				foreach ( $nic in $NICdata )
 				{
 					if ( $nic.Name -imatch $testVM.ResourceName)
