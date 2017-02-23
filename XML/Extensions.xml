@@ -9,7 +9,7 @@
 				<commandToExecute>touch /var/log/CustomExtensionSuccessful</commandToExecute>
 			</PublicConfiguration>
 			<Version>1.*</Version>
-			<LatestVersion>1.4</LatestVersion>
+			<LatestVersion>1.5</LatestVersion>
 		</Extension>
 		<Extension>
 			<Name>OsPatching</Name>
