@@ -171,8 +171,8 @@ def CheckCmdPyModExist(it):
 
 def RunTest():
         UpdateState("TestRunning")
-        env ASSUME_ALWAYS_YES=YES pkg bootstrap
-        pkg update
+        Run('env ASSUME_ALWAYS_YES=YES pkg bootstrap')
+        Run('pkg update')
         success = True
         try:
                 import xml.etree.cElementTree as ET
