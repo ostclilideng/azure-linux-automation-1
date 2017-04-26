@@ -5209,6 +5209,15 @@
 			<setupType>ExtensionTest</setupType>
 			<SupportedExecutionModes>AzureServiceManagement,AzureResourceManager</SupportedExecutionModes>
 			<Priority>P0</Priority>
+		</test>	
+
+		<test>
+			<testName>ICA-All-Region-TEST</testName>
+			<testScript></testScript>
+			<testScriptps1>ICA-All-Region-TEST.ps1</testScriptps1>
+			<setupType></setupType>
+			<SupportedExecutionModes>AzureResourceManager</SupportedExecutionModes>
+			<Priority>P0</Priority>
 		</test>		
 
 		<test>
