@@ -43,6 +43,10 @@ foreach($location in $locationList)
 		$successCount = $successCount + 1
 		$isConnected = "True"
    }
+   else
+   {
+   		$isConnected = "False"
+   }
    $socket.Close()
 
    if($isConnected -eq "True")
