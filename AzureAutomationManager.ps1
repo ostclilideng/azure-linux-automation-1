@@ -112,6 +112,8 @@ try
 
     if ($UseAzureResourceManager)
     {
+        $sub = Get-AzureRmSubscription
+        LogMsg "SubscriptionId         : $($sub.SubscriptionId)"
         Set-Variable -Name UseAzureResourceManager -Value $true -Scope Global
         $selectSubscription = Select-AzureRmSubscription -SubscriptionId $AzureSetup.SubscriptionID
         LogMsg "SubscriptionName       : $($AzureSetup.SubscriptionName)"
